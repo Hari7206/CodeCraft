@@ -21,12 +21,12 @@ kind: RoleBinding
 metadata:
   name: resource-manager-binding
 
-subjects:
-  - kind: ServiceAccount
-    name: resource-manager
-    namespace: default
-
 roleRef:
   kind: Role
   name: resource-manager
   apiGroup: rbac.authorization.k8s.io
+
+subjects:
+  - kind: ServiceAccount
+    name: resource-manager
+    namespace: default

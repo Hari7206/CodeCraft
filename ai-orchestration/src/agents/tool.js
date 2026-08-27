@@ -2,8 +2,8 @@ import axios from "axios";
 import { tool } from "langchain";
 import * as z from "zod";
 
-const API_URL =
-  "http://6188b5b0-48ce-4514-83c7-33231bec4288.agent.localhost";
+ const API_URL =
+  "http://sandbox-service-bc7e3f03-f47f-456b-a318-d8f7ef188a36:3000";
 
 // ===============================
 // LIST FILES
