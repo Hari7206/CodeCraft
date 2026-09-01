@@ -2,29 +2,29 @@ import axios from "axios";
 import { tool } from "langchain";
 import * as z from "zod";
 
- const API_URL =
-  "http://sandbox-service-bc7e3f03-f47f-456b-a318-d8f7ef188a36:3000";
-
-// ===============================
-// LIST FILES
-// ===============================
+const AXIOS_TIMEOUT = 10000; // don't let a hung sandbox service hang the whole agent
 
 export const listFiles = tool(
-  async () => {
-    console.log("===============================");
-    console.log("USING LIST_FILES TOOL");
-    console.log("===============================");
+  async ({}, config) => {
+    const writer = config.writer;
+    if (!config || !config.context || !config.context.projectId) {
+      throw new Error("Project ID is missing. Please provide a valid projectId in the context.");
+    }
 
+    const projectId = config.context.projectId;
+    const API_URL = `http://sandbox-service-${projectId}:3000`;
+
+    writer?.write("Listing files in project directory\n");
     console.log("Request:", `GET ${API_URL}/list-files`);
 
-    const response = await axios.get(`${API_URL}/list-files`);
-
-    console.log("===============================");
-    console.log("RESPONSE FROM LIST_FILES TOOL");
-    console.log(response.data);
-    console.log("===============================");
-
-    return JSON.stringify(response.data.files);
+    try {
+      const response = await axios.get(`${API_URL}/list-files`, { timeout: AXIOS_TIMEOUT });
+      writer?.write("Files listed successfully\n");
+      return JSON.stringify(response.data.files);
+    } catch (err) {
+      writer?.write(`Failed to list files: ${err.message}\n`);
+      throw new Error(`list_files failed: ${err.message}`);
+    }
   },
   {
     name: "list_files",
@@ -33,30 +33,30 @@ export const listFiles = tool(
   }
 );
 
-// ===============================
-// READ FILES
-// ===============================
-
 export const readFiles = tool(
-  async ({ files }) => {
-    console.log("===============================");
-    console.log("USING READ_FILES TOOL");
-    console.log("===============================");
+  async ({ files }, config) => {
+    const writer = config.writer;
+    if (!config || !config.context || !config.context.projectId) {
+      throw new Error("Project ID is missing. Please provide a valid projectId in the context.");
+    }
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      throw new Error("No files specified. Please provide an array of file paths to read.");
+    }
 
-    console.log("Files requested:", files);
-
+    const projectId = config.context.projectId;
+    const API_URL = `http://sandbox-service-${projectId}:3000`;
     const url = `${API_URL}/read-files?files=${files.join(",")}`;
 
-    console.log("Request:", `GET ${url}`);
+    writer?.write("Reading files in project directory\n");
 
-    const response = await axios.get(url);
-
-    console.log("===============================");
-    console.log("RESPONSE FROM READ_FILES TOOL");
-    console.log(response.data);
-    console.log("===============================");
-
-    return JSON.stringify(response.data);
+    try {
+      const response = await axios.get(url, { timeout: AXIOS_TIMEOUT });
+      writer?.write("Files read successfully\n");
+      return JSON.stringify(response.data);
+    } catch (err) {
+      writer?.write(`Failed to read files: ${err.message}\n`);
+      throw new Error(`read_files failed: ${err.message}`);
+    }
   },
   {
     name: "read_files",
@@ -72,36 +72,33 @@ export const readFiles = tool(
   }
 );
 
-// ===============================
-// UPDATE FILES
-// ===============================
-
 export const updateFiles = tool(
-  async ({ files }) => {
-    console.log("===============================");
-    console.log("USING UPDATE_FILES TOOL");
-    console.log("===============================");
+  async ({ files }, config) => {
+    const writer = config.writer;
+    if (!config || !config.context || !config.context.projectId) {
+      throw new Error("Project ID is missing. Please provide a valid projectId in the context.");
+    }
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      throw new Error("No files specified. Please provide an array of files to create or update.");
+    }
 
-    console.log("Files to create/update:");
-    console.log(files);
+    const projectId = config.context.projectId;
+    const API_URL = `http://sandbox-service-${projectId}:3000`;
 
-    console.log("Request:", `PATCH ${API_URL}/update-files`);
+    writer?.write("Updating files in project directory\n"); // fixed: was `write` (undefined ref)
 
-    console.log("Request body:");
-    console.log({
-      updates: files,
-    });
-
-    const response = await axios.patch(`${API_URL}/update-files`, {
-      updates: files,
-    });
-
-    console.log("===============================");
-    console.log("RESPONSE FROM UPDATE_FILES TOOL");
-    console.log(response.data);
-    console.log("===============================");
-
-    return JSON.stringify(response.data.results);
+    try {
+      const response = await axios.patch(
+        `${API_URL}/update-files`,
+        { updates: files },
+        { timeout: AXIOS_TIMEOUT }
+      );
+      writer?.write("Files updated successfully\n");
+      return JSON.stringify(response.data.results);
+    } catch (err) {
+      writer?.write(`Failed to update files: ${err.message}\n`);
+      throw new Error(`update_files failed: ${err.message}`);
+    }
   },
   {
     name: "update_files",
@@ -111,14 +108,10 @@ export const updateFiles = tool(
       files: z
         .array(
           z.object({
-            file: z
-              .string()
-              .describe("The path of the file to create or update."),
+            file: z.string().describe("The path of the file to create or update."),
             content: z
               .string()
-              .describe(
-                "The complete content that should be written to the file."
-              ),
+              .describe("The complete content that should be written to the file."),
           })
         )
         .describe(
