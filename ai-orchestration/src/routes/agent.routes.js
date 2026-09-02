@@ -7,15 +7,21 @@ agentRouter.post('/invoke', async (req, res) => {
     try {
         const { message, projectId } = req.body
 
+        // Validate FIRST
         if (!message || !projectId) {
             return res.status(400).json({ error: 'message and projectId are required.' })
         }
 
+        // Setup SSE headers
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+        })
+
         const stream = await agent.stream(
             {
-                messages: [
-                    { role: "user", content: message }
-                ]
+                messages: [{ role: "user", content: message }]
             },
             {
                 context: { projectId },
@@ -23,24 +29,31 @@ agentRouter.post('/invoke', async (req, res) => {
             }
         )
 
-        const chunks = []
+        // Stream chunks
         for await (const chunk of stream) {
             console.log('Chunk:', chunk)
-            chunks.push(chunk)
+            res.write(`data: ${JSON.stringify(chunk)}\n\n`)
         }
 
-        // Pull the final agent output out of the accumulated chunks.
-        // Adjust this depending on what shape your `writer.write(...)` calls actually produce.
-        const finalMessage = chunks.map(c => (typeof c === 'string' ? c : JSON.stringify(c))).join('')
+        res.write('data: [DONE]\n\n')
+        res.end()
 
-        res.status(200).json({
-            message: finalMessage,
-            steps: chunks // optional: useful for debugging/UI progress display
-        })
     } catch (error) {
         console.error('Error invoking agent:', error)
 
-        // Distinguish rate limiting from other failures so the client can react appropriately
+        if (res.headersSent) {
+            let errorMsg = 'An error occurred'
+            if (error?.statusCode === 429 || error?.message?.includes('rate_limited')) {
+                errorMsg = 'The AI service is currently rate limited. Please try again in a minute.'
+            } else if (error?.message?.toLowerCase().includes('timeout')) {
+                errorMsg = 'The request took too long to process. Please try again.'
+            }
+            
+            res.write(`event: error\ndata: ${JSON.stringify({ error: errorMsg })}\n\n`)
+            res.end()
+            return
+        }
+
         if (error?.statusCode === 429 || error?.message?.includes('rate_limited') || error?.message?.includes('429')) {
             return res.status(429).json({
                 error: 'The AI service is currently rate limited. Please try again in a minute.'

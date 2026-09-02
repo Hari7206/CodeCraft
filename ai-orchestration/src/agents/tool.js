@@ -2,7 +2,7 @@ import axios from "axios";
 import { tool } from "langchain";
 import * as z from "zod";
 
-const AXIOS_TIMEOUT = 10000; // don't let a hung sandbox service hang the whole agent
+const AXIOS_TIMEOUT = 10000; 
 
 export const listFiles = tool(
   async ({}, config) => {
@@ -14,7 +14,7 @@ export const listFiles = tool(
     const projectId = config.context.projectId;
     const API_URL = `http://sandbox-service-${projectId}:3000`;
 
-    writer?.write("Listing files in project directory\n");
+    writer("Listing files in project directory\n" + files.join("\n") + "\n"); // fixed: was `write` (undefined ref)
     console.log("Request:", `GET ${API_URL}/list-files`);
 
     try {
@@ -22,7 +22,7 @@ export const listFiles = tool(
       writer?.write("Files listed successfully\n");
       return JSON.stringify(response.data.files);
     } catch (err) {
-      writer?.write(`Failed to list files: ${err.message}\n`);
+      writer(`Failed to list files: ${err.message}\n`);
       throw new Error(`list_files failed: ${err.message}`);
     }
   },
@@ -47,14 +47,14 @@ export const readFiles = tool(
     const API_URL = `http://sandbox-service-${projectId}:3000`;
     const url = `${API_URL}/read-files?files=${files.join(",")}`;
 
-    writer?.write("Reading files in project directory\n");
+    writer("Reading files in project directory\n" + files.join("\n") + "\n"); // fixed: was `write` (undefined ref)
 
     try {
       const response = await axios.get(url, { timeout: AXIOS_TIMEOUT });
-      writer?.write("Files read successfully\n");
+      writer("Files read successfully\n");
       return JSON.stringify(response.data);
     } catch (err) {
-      writer?.write(`Failed to read files: ${err.message}\n`);
+      writer(`Failed to read files: ${err.message}\n`);
       throw new Error(`read_files failed: ${err.message}`);
     }
   },
@@ -85,7 +85,7 @@ export const updateFiles = tool(
     const projectId = config.context.projectId;
     const API_URL = `http://sandbox-service-${projectId}:3000`;
 
-    writer?.write("Updating files in project directory\n"); // fixed: was `write` (undefined ref)
+    writer("Updating files in project directory\n" + files.map(f => f.file).join("\n") + "\n"); // fixed: was `write` (undefined ref)
 
     try {
       const response = await axios.patch(
@@ -93,10 +93,10 @@ export const updateFiles = tool(
         { updates: files },
         { timeout: AXIOS_TIMEOUT }
       );
-      writer?.write("Files updated successfully\n");
+      writer("Files updated successfully\n");
       return JSON.stringify(response.data.results);
     } catch (err) {
-      writer?.write(`Failed to update files: ${err.message}\n`);
+      writer(`Failed to update files: ${err.message}\n`);
       throw new Error(`update_files failed: ${err.message}`);
     }
   },
