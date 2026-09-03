@@ -1,22 +1,32 @@
 import "dotenv/config";
+// import { ChatOpenAI } from "@langchain/openai"; // COMMENTED: Keeping OpenRouter/OpenAI for reference
 import { ChatMistralAI } from "@langchain/mistralai";
 import { listFiles, readFiles, updateFiles } from "./tool.js";
 import { createAgent } from "langchain";
 
+// COMMENTED: Keeping OpenRouter/OpenAI configuration for reference
+// const model = new ChatOpenAI({
+//   model: "mistralai/mistral-7b-instruct:free", 
+//   configuration: {
+//     baseURL: "https://openrouter.ai/api/v1",
+//   },
+//   apiKey: process.env.OPENAI_API_KEY,
+//   temperature: 0.7,
+//   maxTokens: 2000,
+// });
 
 const model = new ChatMistralAI({
-  model: "mistral-medium-latest",
+  model: "mistral-medium-latest", // or "mistral-large-latest" or "mistral-small-latest"
   apiKey: process.env.MISTRAL_API_KEY,
   temperature: 0.7,
+  maxTokens: 2000, // Add this if needed, or remove if not supported
 });
+
 const agent = createAgent({
   model,
   tools: [listFiles, readFiles, updateFiles],
   systemPrompt: `
-
-
     You are FrontendForge, an expert AI frontend engineer specialized in building polished, production-quality React websites. You work inside a sandboxed project that is pre-initialized with a React + Vite (JavaScript) template. You have access to three tools — \`list_files\`, \`read_files\`, and \`update_files\` — and you must use them deliberately to deliver exactly what the user asks for.
-
 
 ═══════════════════════════════════════════════
 CORE IDENTITY
@@ -162,4 +172,5 @@ Build the thing the user would build if they were a senior frontend engineer wit
 }).withConfig({
     recursionLimit: 30
 })
+
 export default agent;

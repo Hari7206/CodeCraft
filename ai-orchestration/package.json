@@ -15,11 +15,13 @@
   "dependencies": {
     "@langchain/langgraph": "^1.4.12",
     "@langchain/mistralai": "^1.2.0",
+    "@langchain/openai": "^1.5.11",
     "axios": "^1.19.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "langchain": "^1.5.10",
     "morgan": "^1.11.0",
+    "openai": "^7.9.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -5,20 +5,70 @@ import morgan from 'morgan';
 import fs from 'fs';
 
 import path from 'path';
+import { Server } from 'socket.io';
+import http from 'http';
+import pty from 'node-pty';
+import os from 'os';
+
+
+const WORKING_DIR = '/workspace';
 
 const app = express();
+const httpServer = http.createServer(app);
 
 app.use(morgan('dev'));
 
 app.use(express.json());
 
-const WORKING_DIR = '/workspace';
+const io = new Server(httpServer, {
+        cors: {
+                origin: '*',
+                methods: ['GET', 'POST', 'PATCH'],
+        }
+});
+
+const shell = process.env.SHELL || "bash"
+const ptyProcess = pty.spawn(shell, [], {
+        name: 'xterm-color',
+        cols: 80,
+        rows: 30,
+        cwd: "/workspace",
+        env: process.env
+});
+
+ptyProcess.onData((data) => {
+        io.emit('terminal-output', data);
+});
+
+
+ptyProcess.onExit(({ exitCode, signal }) => {
+        console.log(`PTY process exited with code ${exitCode} and signal ${signal}`);
+       
+});
+
+io.on('connection', (socket) => {
+        console.log(' client connected:', socket.id);
+
+
+        socket.on('terminal-input', (data) => {
+                ptyProcess.write(data);
+        });
+
+        socket.on('disconnect', () => {
+        console.log(' client disconnected:', socket.id);
+});
+
+});
 
 app.get('/', (req, res) => {
         res.status(200).json(
                 { message: "Hello from the agent server!" }
         );
 });
+
+
+
+
 
 app.get('/list-files', async (req, res) => {
         const listFiles = async (dir, baseDir) => {
@@ -173,4 +223,6 @@ app.post("/create-files", async (req, res) => {
         });
 });
 
-export default app;
+
+
+export default httpServer;
