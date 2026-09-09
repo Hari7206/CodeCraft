@@ -9,6 +9,7 @@ import { Server } from 'socket.io';
 import http from 'http';
 import pty from 'node-pty';
 import os from 'os';
+import cors from 'cors';
 
 
 const WORKING_DIR = '/workspace';
@@ -19,6 +20,10 @@ const httpServer = http.createServer(app);
 app.use(morgan('dev'));
 
 app.use(express.json());
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PATCH' , 'DELETE'],
+}));
 
 const io = new Server(httpServer, {
         cors: {
