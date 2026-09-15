@@ -94,15 +94,15 @@ export default function TerminalPanel() {
       term.writeln('\x1b[31m✗ Connection failed — retrying…\x1b[0m')
     })
 
-    // Receive terminal output
-    socket.on('terminal output', (data) => {
+    // Receive terminal output  ← event name uses a HYPHEN, not a space
+    socket.on('terminal-output', (data) => {
       term.write(data)
     })
 
-    // Send terminal input
+    // Send terminal input  ← event name uses a HYPHEN, not a space
     term.onData((data) => {
       if (socket.connected) {
-        socket.emit('terminal input', data)
+        socket.emit('terminal-input', data)
       }
     })
 

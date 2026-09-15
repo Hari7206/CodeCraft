@@ -13,7 +13,8 @@ export function SandboxProvider({ children }) {
     setStatus('creating')
     setError(null)
     try {
-      const res = await fetch('http://localhost/api/sandbox/start', {
+      
+const res = await fetch('/api/sandbox/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       })
