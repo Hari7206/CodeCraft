@@ -52,6 +52,7 @@ manifests:
     - k8s/router-service.yml
     - k8s/sandbox-deployment.yml
     - k8s/sandbox-service.yml
+    - k8s/secrets.yml
 
 deploy:
   kubectl: {}
